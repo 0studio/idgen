@@ -13,6 +13,7 @@
 		serverBits, server,
 		sysTypeBits, sysType,
 		seq)
+    idGen.SetSequence(100)// if needed
 	go idGen.Recv()
 	newId := idGen.GetNewId() //	assert.Equal(t, 2260613086576641, newId)
 ```
