@@ -93,6 +93,7 @@ func TestIdGen2(t *testing.T) {
 	go idGen.Recv()
 	newId := idGen.GetNewId()
 	assert.Equal(t, 2260613086576641, newId)
+	assert.Equal(t, 2260613086576640, MakeId(platformBits, platform, serverBits, server, sysTypeBits, sysType, seq))
 	assert.Equal(t, idGen.GetPlatform(2260613086576641), platform)
 	assert.Equal(t, idGen.GetServer(2260613086576641), 2)
 	assert.Equal(t, idGen.GetSysType(2260613086576641), 1)

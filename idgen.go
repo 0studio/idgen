@@ -71,7 +71,7 @@ func (idGen *IdGen) SetSequence(sequence uint64) {
 	idGen.sequence = sequence
 }
 
-func NewIdgen(platformBits uint64, platform uint64, serverBits uint64, server uint64, sysTypeBits uint64, systype uint64, sequence uint64) (idgen *IdGen) {
+func NewIdgen(platformBits, platform, serverBits, server, sysTypeBits, systype, sequence uint64) (idgen *IdGen) {
 	return &IdGen{
 		platformBits: platformBits,
 		serverBits:   serverBits,
@@ -85,11 +85,16 @@ func NewIdgen(platformBits uint64, platform uint64, serverBits uint64, server ui
 	}
 }
 
-func NewDefaultIdgen(platform uint64, server uint64, systype uint64, sequence uint64) (idgen *IdGen) {
+func NewDefaultIdgen(platform, server, systype, sequence uint64) (idgen *IdGen) {
 	return NewIdgen(12, platform, 9, server, 8, systype, sequence)
 }
 
-func (idGen *IdGen) newId(systype uint64) (newId uint64) {
+func MakeId(platformBits, platform, serverBits, server, sysTypeBits, systype, sequence uint64) (newId uint64) {
+	idGen := NewIdgen(platformBits, platform, serverBits, server, sysTypeBits, systype, sequence)
+	newId = (idGen.platform << idGen.GetPlatformShift()) | (idGen.server << idGen.GetServerShift()) | idGen.sysType<<idGen.GetSysTypeShift() | (idGen.sequence)
+	return
+}
+func (idGen *IdGen) newId() (newId uint64) {
 	idGen.sequence = idGen.sequence + 1
 	newId = (idGen.platform << idGen.GetPlatformShift()) | (idGen.server << idGen.GetServerShift()) | idGen.sysType<<idGen.GetSysTypeShift() | (idGen.sequence)
 	return
@@ -112,7 +117,7 @@ func (idGen *IdGen) Recv() {
 			for idGen.isRunning {
 				select {
 				case container := <-idGen.ch:
-					container <- idGen.newId(idGen.sysType)
+					container <- idGen.newId()
 				case <-idGen.stopChan:
 					idGen.isRunning = false
 				}
