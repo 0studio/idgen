@@ -6,152 +6,124 @@ import (
 	"time"
 )
 
-// http://mikespook.com/2012/05/golang-funny-play-with-channel/
-// 不会有协程安全问题，因为都是通过channel来读取newId
-//
 type IdGen struct {
-	platform uint64 //
-	serverid uint64
-	// lastTimestamp uint64
-	sysType   uint64
-	seq       uint64
-	ch        chan chan uint64
-	isRunning bool
-	stopChan  chan bool
+	platformBits uint64 // if =12 , 最多可以有2^12个平台 4096
+	serverBits   uint64 // if =9  最多可以有2^9个服务器 512
+	sysTypeBits  uint64 //  特殊标记位,一些特殊的系统可能需要 如果=3，sysType 最多有2^3个
+	platform     uint64 //平台
+	server       uint64 // server 编号
+	sysType      uint64 // 额外提供的一个字段，跟platform,server 字段一样，也占据n个字节
+	sequence     uint64 // 自增系列
+	ch           chan chan uint64
+	isRunning    bool
+	stopChan     chan bool
 }
 
-/*
-* 最多可以有2^12个平台 4096
-* 最多可以有2^11个服务器 2048
- */
-
-const PlatformBits = 12 //
-
-// func MakePlatformId(channelId int32, OS int32) uint64 {
-// 	return uint64((channelId << OSBits) | OS)
-
-// }
-
-const ServeridBits = 9
-
-// 特殊标记位,一些特殊的系统可能需要
-const SysTypeBits = 8
-
-// const TimestampBits = 28
 // golang mysql driver 不支持uint64 最高位设成1，
 // 所以 所有移位操作，  以63 为最高位数
-const SeqBits = 63 - (PlatformBits + ServeridBits + SysTypeBits)
-
-// // 2^18=262144
-// const MaxSeq = 2 << (63 - SeqBits - 1) // 2<<17 == 2^18
-// // seqbits = 63-pfbits-serveridbits-timestampbits
-
-const PLATFORM_SHIFT = (63 - PlatformBits)
-const SERVER_SHIFT = 63 - (PlatformBits + ServeridBits)
-const SYSTYPE_SHIFT = 63 - (PlatformBits + ServeridBits + SysTypeBits)
-
-// const TimestampShift = 63 - (PlatformBits + ServeridBits + TimestampBits)
-
-const PLATFORM_MASK = ((1 << PlatformBits) - 1) << PLATFORM_SHIFT
-
-func GetIdPlatformId(id uint64) uint64 {
-	return id & PLATFORM_MASK >> PLATFORM_SHIFT
+func (idGen IdGen) GetSeqBits() uint64 {
+	return 63 - idGen.platformBits - idGen.serverBits - idGen.sysTypeBits
+}
+func (idGen IdGen) GetMaxSequence() uint64 {
+	// math.power(2,4)=16, 2<<3=16
+	return 2 << (idGen.GetSeqBits() - 1) // 2<<17 == 2^18
+}
+func (idGen IdGen) GetSequenceMask() uint64 {
+	return ((1 << idGen.GetSeqBits()) - 1)
 }
 
-// func GetChannelId(id uint64) uint64 {
-// 	return GetIdPlatformId(id) >> OSBits
-// }
-// func GetChannelIdFromPlatformId(platformid uint64) uint64 {
-// 	return platformid >> OSBits
-// }
-
-// func GetOSId(id uint64) uint64 {
-// 	return GetIdPlatformId(id) & OS_MASK
-// }
-
-const SERVER_MASK = ((1 << ServeridBits) - 1) << SERVER_SHIFT
-
-func GetIdServerId(id uint64) uint64 {
-	return id & SERVER_MASK >> SERVER_SHIFT
+func (idGen IdGen) GetPlatformShift() uint64 {
+	return (63 - idGen.platformBits)
+}
+func (idGen IdGen) GetPlatformMask() uint64 {
+	return ((1 << idGen.platformBits) - 1) << idGen.GetPlatformShift()
 }
 
-const SYSTYPE_MASK = ((1 << SysTypeBits) - 1) << SYSTYPE_SHIFT
-
-func GetIdSysTypeId(id uint64) uint64 {
-	return id & SYSTYPE_MASK >> SYSTYPE_SHIFT
+func (idGen IdGen) GetServerShift() uint64 {
+	return 63 - (idGen.platformBits + idGen.serverBits)
+}
+func (idGen IdGen) GetServerMask() uint64 {
+	return ((1 << idGen.serverBits) - 1) << idGen.GetServerShift()
 }
 
-const SEQ_MASK = ((1 << SeqBits) - 1)
-
-func GetIdSeq(id uint64) uint64 {
-	return id & SEQ_MASK
+func (idGen IdGen) GetSysTypeShift() uint64 {
+	return 63 - (idGen.platformBits + idGen.serverBits + idGen.sysTypeBits)
 }
 
-func MakeId(platform uint64, server uint64, systype uint64, seq uint64) uint64 {
-	return (platform << PLATFORM_SHIFT) | (server << SERVER_SHIFT) | systype<<SYSTYPE_SHIFT | (seq)
+func (idGen IdGen) GetSysTypeMask() uint64 {
+	return ((1 << idGen.sysTypeBits) - 1) << idGen.GetSysTypeShift()
 }
 
-func NewIdgen(platform uint64, serverid uint64, systype uint64, base uint64) (idgen *IdGen) {
+func (idGen IdGen) GetPlatform(id uint64) uint64 {
+	return id & idGen.GetPlatformMask() >> idGen.GetPlatformShift()
+}
+func (idGen IdGen) GetServer(id uint64) uint64 {
+	return id & idGen.GetServerMask() >> idGen.GetServerShift()
+}
+func (idGen IdGen) GetSysType(id uint64) uint64 {
+	return id & idGen.GetSysTypeMask() >> idGen.GetSysTypeShift()
+}
+
+func (idGen IdGen) GetSequence(id uint64) uint64 {
+	return id & idGen.GetSequenceMask()
+}
+func (idGen *IdGen) SetSequence(sequence uint64) {
+	idGen.sequence = sequence
+}
+
+func NewIdgen(platformBits uint64, platform uint64, serverBits uint64, server uint64, sysTypeBits uint64, systype uint64, sequence uint64) (idgen *IdGen) {
 	return &IdGen{
-		platform: platform,
-		serverid: serverid,
-		sysType:  systype,
-		seq:      base,
-		ch:       make(chan chan uint64),
-		stopChan: make(chan bool),
+		platformBits: platformBits,
+		serverBits:   serverBits,
+		sysTypeBits:  sysTypeBits,
+		platform:     platform,
+		server:       server,
+		sysType:      systype,
+		sequence:     sequence,
+		ch:           make(chan chan uint64),
+		stopChan:     make(chan bool),
 	}
 }
 
-func (this *IdGen) newId(systype uint64) (newId uint64) {
-	this.seq = this.seq + 1
+func NewDefaultIdgen(platform uint64, server uint64, systype uint64, sequence uint64) (idgen *IdGen) {
+	return NewIdgen(12, platform, 9, server, 8, systype, sequence)
+}
 
-	newId = MakeId(this.platform, this.serverid, systype, this.seq)
-
+func (idGen *IdGen) newId(systype uint64) (newId uint64) {
+	idGen.sequence = idGen.sequence + 1
+	newId = (idGen.platform << idGen.GetPlatformShift()) | (idGen.server << idGen.GetServerShift()) | idGen.sysType<<idGen.GetSysTypeShift() | (idGen.sequence)
 	return
 }
-func (this *IdGen) Stop() {
-	if this.isRunning == false {
+func (idGen *IdGen) Stop() {
+	if idGen.isRunning == false {
 		return
 	}
 	select {
-	case this.stopChan <- true:
+	case idGen.stopChan <- true:
 	case <-time.After(time.Second):
 		fmt.Println("stop idgen timeout")
 	}
-	this.isRunning = false
+	idGen.isRunning = false
 }
-func (this *IdGen) Recv() {
+func (idGen *IdGen) Recv() {
 	protectFunc(
 		func() {
-			// defer utils.PrintPanicStack()
-			// var newid uint64
-			// var sysTypeId uint64
-			this.isRunning = true
-			for this.isRunning {
-				// atomic.StoreInt64(&newid, this.newId())
-				// 总感觉 算newid的时候 不是原子操作
+			idGen.isRunning = true
+			for idGen.isRunning {
 				select {
-				case container := <-this.ch:
-					// select { // select 避免 从ch 读数据的时候 卡死在这 ，
-					// case sysTypeId = <-container:
-					// case <-time.After(30 * time.Millisecond): // 300ms 后， 如果依然没有从申请id的goroute那收到platform
-					// 	fmt.Println("use default systype")
-					// 	sysTypeId = this.sysType // 使用默认的platform
-					// }
-					container <- this.newId(this.sysType)
-
-				case <-this.stopChan:
-					this.isRunning = false
+				case container := <-idGen.ch:
+					container <- idGen.newId(idGen.sysType)
+				case <-idGen.stopChan:
+					idGen.isRunning = false
 				}
 			}
 		})
 }
 
 // 应该返回int64
-func (this *IdGen) GetNewId() uint64 {
+func (idGen *IdGen) GetNewId() uint64 {
 	container := make(chan uint64)
-	this.ch <- container
-	// container <- systypeId
+	idGen.ch <- container
 	id := <-container
 	close(container)
 	return id
