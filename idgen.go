@@ -64,7 +64,7 @@ func (idGen IdGen) GetSysType(id uint64) uint64 {
 	return id & idGen.GetSysTypeMask() >> idGen.GetSysTypeShift()
 }
 
-func (idGen IdGen) GetSequence(id uint64) uint64 {
+func (idGen IdGen) GetIdSequence(id uint64) uint64 {
 	return id & idGen.GetSequenceMask()
 }
 func (idGen *IdGen) SetSequence(sequence uint64) {
