@@ -10,9 +10,9 @@ type IdGen struct {
 	platformBits uint64 // if =12 , 最多可以有2^12个平台 4096
 	serverBits   uint64 // if =9  最多可以有2^9个服务器 512
 	sysTypeBits  uint64 //  特殊标记位,一些特殊的系统可能需要 如果=3，sysType 最多有2^3个
-	platform     uint64 //平台
-	server       uint64 // server 编号
-	sysType      uint64 // 额外提供的一个字段，跟platform,server 字段一样，也占据n个字节
+	Platform     uint64 //平台
+	Server       uint64 // Server 编号
+	SysType      uint64 // 额外提供的一个字段，跟platform,Server 字段一样，也占据n个字节
 	sequence     uint64 // 自增系列
 	ch           chan chan uint64
 	isRunning    bool
@@ -71,32 +71,32 @@ func (idGen *IdGen) SetSequence(sequence uint64) {
 	idGen.sequence = sequence
 }
 
-func NewIdgen(platformBits, platform, serverBits, server, sysTypeBits, systype, sequence uint64) (idgen *IdGen) {
+func NewIdgen(platformBits, Platform, serverBits, Server, sysTypeBits, systype, sequence uint64) (idgen *IdGen) {
 	return &IdGen{
 		platformBits: platformBits,
 		serverBits:   serverBits,
 		sysTypeBits:  sysTypeBits,
-		platform:     platform,
-		server:       server,
-		sysType:      systype,
+		Platform:     Platform,
+		Server:       Server,
+		SysType:      systype,
 		sequence:     sequence,
 		ch:           make(chan chan uint64),
 		stopChan:     make(chan bool),
 	}
 }
 
-func NewDefaultIdgen(platform, server, systype, sequence uint64) (idgen *IdGen) {
-	return NewIdgen(12, platform, 9, server, 8, systype, sequence)
+func NewDefaultIdgen(Platform, Server, systype, sequence uint64) (idgen *IdGen) {
+	return NewIdgen(12, Platform, 9, Server, 8, systype, sequence)
 }
 
-func MakeId(platformBits, platform, serverBits, server, sysTypeBits, systype, sequence uint64) (newId uint64) {
-	idGen := NewIdgen(platformBits, platform, serverBits, server, sysTypeBits, systype, sequence)
-	newId = (idGen.platform << idGen.GetPlatformShift()) | (idGen.server << idGen.GetServerShift()) | idGen.sysType<<idGen.GetSysTypeShift() | (idGen.sequence)
+func MakeId(platformBits, Platform, serverBits, Server, sysTypeBits, systype, sequence uint64) (newId uint64) {
+	idGen := NewIdgen(platformBits, Platform, serverBits, Server, sysTypeBits, systype, sequence)
+	newId = (idGen.Platform << idGen.GetPlatformShift()) | (idGen.Server << idGen.GetServerShift()) | idGen.SysType<<idGen.GetSysTypeShift() | (idGen.sequence)
 	return
 }
 func (idGen *IdGen) newId() (newId uint64) {
 	idGen.sequence = idGen.sequence + 1
-	newId = (idGen.platform << idGen.GetPlatformShift()) | (idGen.server << idGen.GetServerShift()) | idGen.sysType<<idGen.GetSysTypeShift() | (idGen.sequence)
+	newId = (idGen.Platform << idGen.GetPlatformShift()) | (idGen.Server << idGen.GetServerShift()) | idGen.SysType<<idGen.GetSysTypeShift() | (idGen.sequence)
 	return
 }
 func (idGen *IdGen) Stop() {
