@@ -17,3 +17,8 @@
 	go idGen.Recv()
 	newId := idGen.GetNewId() //	assert.Equal(t, 2260613086576641, newId)
 ```
+
+```
+	idGen := idgen.NewIdGenerator(1, 1)
+    idGen.GetId()
+```
