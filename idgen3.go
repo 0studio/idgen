@@ -48,12 +48,20 @@ func (this IdGen3) GetPlatformShift() uint64 {
 func (this IdGen3) GetPlatformMask() uint64 {
 	return ((1 << this.platformBits) - 1) << this.GetPlatformShift()
 }
+func (this IdGen3) GetPlatformMax() uint64 {
+	// math.power(2,4)=16, 2<<3=16
+	return 2 << (this.platformBits - 1) // 2<<17 == 2^18
+}
 
 func (this IdGen3) GetServerShift() uint64 {
 	return 63 - (this.platformBits + this.serverBits)
 }
 func (this IdGen3) GetServerMask() uint64 {
 	return ((1 << this.serverBits) - 1) << this.GetServerShift()
+}
+func (this IdGen3) GetServerMax() uint64 {
+	// math.power(2,4)=16, 2<<3=16
+	return 2 << (this.serverBits - 1) // 2<<17 == 2^18
 }
 
 func (this IdGen3) GetSysTypeShift() uint64 {
@@ -63,6 +71,11 @@ func (this IdGen3) GetSysTypeShift() uint64 {
 func (this IdGen3) GetSysTypeMask() uint64 {
 	return ((1 << this.sysTypeBits) - 1) << this.GetSysTypeShift()
 }
+func (this IdGen3) GetSysTypeMax() uint64 {
+	// math.power(2,4)=16, 2<<3=16
+	return 2 << (this.sysTypeBits - 1) // 2<<17 == 2^18
+}
+
 func (this IdGen3) GetTimeStampShift() uint64 {
 	return 63 - (this.platformBits + this.serverBits + this.sysTypeBits + TIME_STAMP_BITS)
 }
@@ -75,7 +88,7 @@ func (this IdGen3) GetTimeStampMask() uint64 {
 func (this IdGen3) GetSeqBits() uint64 {
 	return 63 - this.platformBits - this.serverBits - this.sysTypeBits - TIME_STAMP_BITS
 }
-func (this IdGen3) GetMaxSequence() uint64 {
+func (this IdGen3) GetSequenceMax() uint64 {
 	// math.power(2,4)=16, 2<<3=16
 	return 2 << (this.GetSeqBits() - 1) // 2<<17 == 2^18
 }
@@ -83,22 +96,23 @@ func (this IdGen3) GetSequenceMask() uint64 {
 	return ((1 << this.GetSeqBits()) - 1)
 }
 
-func (this IdGen3) GetPlatform(id uint64) uint64 {
+func (this IdGen3) GetIdPlatform(id uint64) uint64 {
 	return id & this.GetPlatformMask() >> this.GetPlatformShift()
 }
-func (this IdGen3) GetServer(id uint64) uint64 {
+func (this IdGen3) GetIdServer(id uint64) uint64 {
 	return id & this.GetServerMask() >> this.GetServerShift()
 }
-func (this IdGen3) GetSysType(id uint64) uint64 {
+func (this IdGen3) GetSIdysType(id uint64) uint64 {
 	return id & this.GetSysTypeMask() >> this.GetSysTypeShift()
 }
 
 func (this IdGen3) GetIdSequence(id uint64) uint64 {
 	return id & this.GetSequenceMask()
 }
-func (this *IdGen3) SetSequence(sequence uint64) {
-	this.sequence = sequence
-}
+
+// func (this *IdGen3) SetSequence(sequence uint64) {
+// 	this.sequence = sequence
+// }
 
 func (this *IdGen3) cleanSequence() {
 	currentT := uint64(time.Now().UnixNano() / 1000000000)
@@ -163,12 +177,22 @@ func NewIdgen3(platformBits, Platform, serverBits, Server, sysTypeBits, systype 
 		idGenBaseTimestamp: uint64(idGenBaseTimestamp.UnixNano() / 1000000000),
 		ch:                 make(chan chan uint64),
 	}
+	if Platform > idgen.GetPlatformMax() {
+		panic(fmt.Sprintf("platform should<%d,if you set platformBit=%d", idgen.GetPlatformMax(), idgen.platformBits))
+	}
+	if Server > idgen.GetServerMax() {
+		panic(fmt.Sprintf("server should<%d,if you set serverBits=%d", idgen.GetServerMax(), idgen.serverBits))
+	}
+	if systype > idgen.GetSysTypeMax() {
+		panic(fmt.Sprintf("systype should<%d,if you set systypeBits=%d", idgen.GetSysTypeMax(), idgen.sysTypeBits))
+	}
+
 	fmt.Printf("platformBits=%d,serverBits=%d,sysTypeBits=%d,seqBits=%d,timeStampBits=%d,maxSeq/seconds=%d\n",
-		idgen.platformBits, idgen.serverBits, idgen.sysTypeBits, idgen.GetSeqBits(), TIME_STAMP_BITS, idgen.GetMaxSequence())
+		idgen.platformBits, idgen.serverBits, idgen.sysTypeBits, idgen.GetSeqBits(), TIME_STAMP_BITS, idgen.GetSequenceMax())
 	if idgen.GetSeqBits() < 10 {
 		panic("[Error]idgen.SeqBits<10,maybe not each for each second 2^10=1024")
 	}
-	idgen.maxSeq = idgen.GetMaxSequence()
+	idgen.maxSeq = idgen.GetSequenceMax()
 	go idgen.recv()
 	return
 }

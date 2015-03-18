@@ -41,6 +41,22 @@ func TestIdGen32(t *testing.T) {
 	assert.True(t, idGen.GetSeqBits() > 3)
 
 }
+func TestIdGen33(t *testing.T) {
+	var (
+		// platformBits,serverBits,sysTypeBits 所占数据 可以为0
+		platformBits uint64 = 3
+		serverBits   uint64 = 0
+		sysTypeBits  uint64 = 10
+		platform     uint64 = 9 // >2^3
+		server       uint64 = 0
+		sysType      uint64 = 1
+	)
+	assert.Panics(t, func() {
+		NewIdgen3(platformBits, platform,
+			serverBits, server,
+			sysTypeBits, sysType)
+	})
+}
 
 //
 func TestIdGen3(t *testing.T) {
