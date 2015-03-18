@@ -1,6 +1,7 @@
 package idgen
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"strconv"
@@ -39,6 +40,7 @@ func TestIdGen32(t *testing.T) {
 		serverBits, server,
 		sysTypeBits, sysType)
 	assert.True(t, idGen.GetSeqBits() > 3)
+	fmt.Println("newid", idGen.GetNewId())
 
 }
 func TestIdGen33(t *testing.T) {

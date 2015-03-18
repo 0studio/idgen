@@ -42,45 +42,68 @@ type IdGen3 struct {
 	maxSeq    uint64
 }
 
-func (this IdGen3) GetPlatformShift() uint64 {
+func (this IdGen3) getPlatformShift() uint64 {
 	return (63 - this.platformBits)
 }
-func (this IdGen3) GetPlatformMask() uint64 {
-	return ((1 << this.platformBits) - 1) << this.GetPlatformShift()
+func (this IdGen3) getPlatformMask() uint64 {
+	if this.platformBits == 0 {
+		return 0
+	}
+	return ((1 << this.platformBits) - 1) << this.getPlatformShift()
 }
-func (this IdGen3) GetPlatformMax() uint64 {
+func (this IdGen3) getPlatformMax() uint64 {
 	// math.power(2,4)=16, 2<<3=16
-	return 2 << (this.platformBits - 1) // 2<<17 == 2^18
+	if this.platformBits == 0 {
+		return 0
+	}
+
+	return 2<<(this.platformBits-1) - 1 // 2<<17 == 2^18
 }
 
-func (this IdGen3) GetServerShift() uint64 {
+func (this IdGen3) getServerShift() uint64 {
 	return 63 - (this.platformBits + this.serverBits)
 }
-func (this IdGen3) GetServerMask() uint64 {
-	return ((1 << this.serverBits) - 1) << this.GetServerShift()
+func (this IdGen3) getServerMask() uint64 {
+	if this.serverBits == 0 {
+		return 0
+	}
+
+	return ((1 << this.serverBits) - 1) << this.getServerShift()
 }
-func (this IdGen3) GetServerMax() uint64 {
+func (this IdGen3) getServerMax() uint64 {
 	// math.power(2,4)=16, 2<<3=16
-	return 2 << (this.serverBits - 1) // 2<<17 == 2^18
+	if this.serverBits == 0 {
+		return 0
+	}
+
+	return 2<<(this.serverBits-1) - 1 // 2<<17 == 2^18
 }
 
-func (this IdGen3) GetSysTypeShift() uint64 {
+func (this IdGen3) getSysTypeShift() uint64 {
 	return 63 - (this.platformBits + this.serverBits + this.sysTypeBits)
 }
 
-func (this IdGen3) GetSysTypeMask() uint64 {
-	return ((1 << this.sysTypeBits) - 1) << this.GetSysTypeShift()
+func (this IdGen3) getSysTypeMask() uint64 {
+	if this.sysTypeBits == 0 {
+		return 0
+	}
+
+	return ((1 << this.sysTypeBits) - 1) << this.getSysTypeShift()
 }
-func (this IdGen3) GetSysTypeMax() uint64 {
+func (this IdGen3) getSysTypeMax() uint64 {
 	// math.power(2,4)=16, 2<<3=16
-	return 2 << (this.sysTypeBits - 1) // 2<<17 == 2^18
+	if this.sysTypeBits == 0 {
+		return 0
+	}
+
+	return 2<<(this.sysTypeBits-1) - 1 // 2<<17 == 2^18
 }
 
-func (this IdGen3) GetTimeStampShift() uint64 {
+func (this IdGen3) getTimeStampShift() uint64 {
 	return 63 - (this.platformBits + this.serverBits + this.sysTypeBits + TIME_STAMP_BITS)
 }
-func (this IdGen3) GetTimeStampMask() uint64 {
-	return ((1 << TIME_STAMP_BITS) - 1) << this.GetTimeStampShift()
+func (this IdGen3) getTimeStampMask() uint64 {
+	return ((1 << TIME_STAMP_BITS) - 1) << this.getTimeStampShift()
 }
 
 // golang mysql driver 不支持uint64 最高位设成1，
@@ -90,24 +113,24 @@ func (this IdGen3) GetSeqBits() uint64 {
 }
 func (this IdGen3) GetSequenceMax() uint64 {
 	// math.power(2,4)=16, 2<<3=16
-	return 2 << (this.GetSeqBits() - 1) // 2<<17 == 2^18
+	return 2<<(this.GetSeqBits()-1) - 1 // 2<<17 == 2^18
 }
-func (this IdGen3) GetSequenceMask() uint64 {
+func (this IdGen3) getSequenceMask() uint64 {
 	return ((1 << this.GetSeqBits()) - 1)
 }
 
 func (this IdGen3) GetIdPlatform(id uint64) uint64 {
-	return id & this.GetPlatformMask() >> this.GetPlatformShift()
+	return id & this.getPlatformMask() >> this.getPlatformShift()
 }
 func (this IdGen3) GetIdServer(id uint64) uint64 {
-	return id & this.GetServerMask() >> this.GetServerShift()
+	return id & this.getServerMask() >> this.getServerShift()
 }
 func (this IdGen3) GetSIdysType(id uint64) uint64 {
-	return id & this.GetSysTypeMask() >> this.GetSysTypeShift()
+	return id & this.getSysTypeMask() >> this.getSysTypeShift()
 }
 
 func (this IdGen3) GetIdSequence(id uint64) uint64 {
-	return id & this.GetSequenceMask()
+	return id & this.getSequenceMask()
 }
 
 // func (this *IdGen3) SetSequence(sequence uint64) {
@@ -136,11 +159,11 @@ func (this *IdGen3) recv() {
 	for {
 		select {
 		case container := <-this.ch:
+			newId := (this.Platform << this.getPlatformShift()) | (this.Server << this.getServerShift()) | this.SysType<<this.getSysTypeShift() | (this.timeStamp-this.idGenBaseTimestamp)<<this.getTimeStampShift() | (this.sequence)
 			this.sequence = this.sequence + 1
-			if this.sequence >= this.maxSeq {
+			if this.sequence > this.maxSeq {
 				this.addTimeStamp()
 			}
-			newId := (this.Platform << this.GetPlatformShift()) | (this.Server << this.GetServerShift()) | this.SysType<<this.GetSysTypeShift() | (this.timeStamp-this.idGenBaseTimestamp)<<this.GetTimeStampShift() | (this.sequence)
 			container <- newId
 
 		}
@@ -177,14 +200,14 @@ func NewIdgen3(platformBits, Platform, serverBits, Server, sysTypeBits, systype 
 		idGenBaseTimestamp: uint64(idGenBaseTimestamp.UnixNano() / 1000000000),
 		ch:                 make(chan chan uint64),
 	}
-	if Platform > idgen.GetPlatformMax() {
-		panic(fmt.Sprintf("platform should<%d,if you set platformBit=%d", idgen.GetPlatformMax(), idgen.platformBits))
+	if Platform >= idgen.getPlatformMax() && Platform != 0 {
+		panic(fmt.Sprintf("platform should<%d,if you set platformBit=%d", idgen.getPlatformMax(), idgen.platformBits))
 	}
-	if Server > idgen.GetServerMax() {
-		panic(fmt.Sprintf("server should<%d,if you set serverBits=%d", idgen.GetServerMax(), idgen.serverBits))
+	if Server >= idgen.getServerMax() && Server != 0 {
+		panic(fmt.Sprintf("server should<%d,if you set serverBits=%d", idgen.getServerMax(), idgen.serverBits))
 	}
-	if systype > idgen.GetSysTypeMax() {
-		panic(fmt.Sprintf("systype should<%d,if you set systypeBits=%d", idgen.GetSysTypeMax(), idgen.sysTypeBits))
+	if systype >= idgen.getSysTypeMax() && systype != 0 {
+		panic(fmt.Sprintf("systype should<%d,if you set systypeBits=%d", idgen.getSysTypeMax(), idgen.sysTypeBits))
 	}
 
 	fmt.Printf("platformBits=%d,serverBits=%d,sysTypeBits=%d,seqBits=%d,timeStampBits=%d,maxSeq/seconds=%d\n",
