@@ -22,3 +22,20 @@
 	idGen := idgen.NewIdGenerator(1, 1)
     idGen.GetId()
 ```
+
+
+```
+	var (
+		platformBits uint64 = 4  //can be 0
+		serverBits   uint64 = 8  //can be 0
+		sysTypeBits  uint64 = 4  //canbe 0
+		platform     uint64 = 1
+		server       uint64 = 2
+		sysType      uint64 = 1
+	)
+	idGen := NewIdgen3(platformBits, platform,
+		serverBits, server,
+		sysTypeBits, sysType)
+	newId := idGen.GetNewId() //
+    idGen.GetId()
+```

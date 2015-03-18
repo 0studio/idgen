@@ -111,7 +111,8 @@ func (this *IdGen3) cleanSequence() {
 func (this *IdGen3) addTimeStamp() {
 	currentT := uint64(time.Now().UnixNano() / 1000000000)
 	if currentT < this.timeStamp {
-		fmt.Println("[Warning],id生成器sequence所占位数过少，1秒内生成的id超过其最大值，下次id生成器启动时生成的id 有可能会与现在的id 冲突，因为现在id生成器使用的时间戳已经超过当前时间,已超过当前时间多少秒:", this.timeStamp-currentT)
+		fmt.Printf("[Warning],id生成器sequence所占位数过少，1秒内生成的id超过其最大值%d，下次id生成器启动时生成的id 有可能会与现在的id 冲突，因为现在id生成器使用的时间戳已经超过当前时间,已超过当前时间%d秒\n",
+			this.maxSeq, this.timeStamp-currentT)
 	}
 
 	this.timeStamp += 1
@@ -137,6 +138,15 @@ func NewIdgen3(platformBits, Platform, serverBits, Server, sysTypeBits, systype 
 	if err != nil {
 		fmt.Println("err 解析baseTimeStamp发生错误 ，时间格式不对", BASE_TIME_STAMP, "应该形如2006-01-02 15:04:05")
 		panic("err 解析baseTimeStamp发生错误")
+	}
+	if platformBits == 0 {
+		Platform = 0
+	}
+	if serverBits == 0 {
+		Server = 0
+	}
+	if sysTypeBits == 0 {
+		systype = 0
 	}
 
 	timeStamp := time.Now().UnixNano() / 1000000000
