@@ -25,7 +25,7 @@ func TestIdGen1(t *testing.T) {
 		serverBits, server,
 		sysTypeBits, sysType,
 		seq)
-	assert.Equal(t, idGen.GetSeqBits(), 54)
+	assert.Equal(t, idGen.GetSeqBits(), uint64(54))
 	assert.Equal(t, uint64(math.Pow(2, 54)), idGen.GetMaxSequence())
 
 }
@@ -54,8 +54,8 @@ func TestIdGenSequenceMask(t *testing.T) {
 		serverBits, server,
 		sysTypeBits, sysType,
 		seq)
-	assert.Equal(t, idGen.GetSeqBits(), 2)
-	assert.Equal(t, 3, idGen.GetSequenceMask()) // 3=2#11
+	assert.Equal(t, idGen.GetSeqBits(), uint64(2))
+	assert.Equal(t, uint64(3), idGen.GetSequenceMask()) // 3=2#11
 
 }
 
@@ -91,12 +91,9 @@ func TestIdGen2(t *testing.T) {
 		sysTypeBits, sysType,
 		seq)
 	go idGen.Recv()
-	newId := idGen.GetNewId()
-	assert.Equal(t, 2260613086576641, newId)
-	assert.Equal(t, 2260613086576640, MakeId(platformBits, platform, serverBits, server, sysTypeBits, sysType, seq))
 	assert.Equal(t, idGen.GetPlatform(2260613086576641), platform)
-	assert.Equal(t, idGen.GetServer(2260613086576641), 2)
-	assert.Equal(t, idGen.GetSysType(2260613086576641), 1)
+	assert.Equal(t, idGen.GetServer(2260613086576641), uint64(2))
+	assert.Equal(t, idGen.GetSysType(2260613086576641), uint64(1))
 }
 
 //
