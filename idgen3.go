@@ -125,7 +125,7 @@ func (this IdGen3) GetIdPlatform(id uint64) uint64 {
 func (this IdGen3) GetIdServer(id uint64) uint64 {
 	return id & this.getServerMask() >> this.getServerShift()
 }
-func (this IdGen3) GetSIdysType(id uint64) uint64 {
+func (this IdGen3) GetIdSysType(id uint64) uint64 {
 	return id & this.getSysTypeMask() >> this.getSysTypeShift()
 }
 

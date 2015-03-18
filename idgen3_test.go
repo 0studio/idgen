@@ -34,13 +34,17 @@ func TestIdGen32(t *testing.T) {
 		sysTypeBits  uint64 = 10
 		platform     uint64 = 0
 		server       uint64 = 0
-		sysType      uint64 = 1
+		sysType      uint64 = 5
 	)
 	idGen := NewIdgen3(platformBits, platform,
 		serverBits, server,
 		sysTypeBits, sysType)
 	assert.True(t, idGen.GetSeqBits() > 3)
-	fmt.Println("newid", idGen.GetNewId())
+	id := idGen.GetNewId()
+	assert.Equal(t, idGen.GetIdPlatform(id), uint64(0))
+	assert.Equal(t, idGen.GetIdServer(id), uint64(0))
+	assert.Equal(t, idGen.GetIdSysType(id), sysType)
+	fmt.Println("id", id)
 
 }
 func TestIdGen33(t *testing.T) {
@@ -49,7 +53,7 @@ func TestIdGen33(t *testing.T) {
 		platformBits uint64 = 3
 		serverBits   uint64 = 0
 		sysTypeBits  uint64 = 10
-		platform     uint64 = 9 // >2^3
+		platform     uint64 = 8 // >2^3
 		server       uint64 = 0
 		sysType      uint64 = 1
 	)
