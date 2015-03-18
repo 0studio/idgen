@@ -29,6 +29,7 @@
 		platformBits uint64 = 4  //can be 0
 		serverBits   uint64 = 8  //can be 0
 		sysTypeBits  uint64 = 4  //canbe 0
+        //platformBits+serverBits+sysTypeBits should <21
 		platform     uint64 = 1
 		server       uint64 = 2
 		sysType      uint64 = 1
