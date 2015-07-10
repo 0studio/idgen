@@ -11,7 +11,7 @@ type IdGenerator struct {
 	DataCenterId uint64
 	idSequence   *int64
 	timeStamp    uint64
-	lock         *sync.RWMutex
+	lock         sync.RWMutex
 }
 
 var workIdShift = uint64(12)
@@ -28,7 +28,6 @@ func NewIdGenerator(mechineId, dataCenterId uint64) *IdGenerator {
 		DataCenterId: dataCenterId,
 		idSequence:   &zero,
 		timeStamp:    uint64(timestamp),
-		lock:         new(sync.RWMutex),
 	}
 	go idGenerator.cleanSequence()
 	return idGenerator
